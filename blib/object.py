@@ -2,6 +2,7 @@ import cPickle
 import numpy
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 
 from blib.game import get_game
@@ -25,10 +26,22 @@ class LookDownIsoCam:
 	def __init__(self):
 		self.zoom=10
 	def setup(self):
+		z=self.zoom
+		w=float(glutGet(GLUT_WINDOW_WIDTH))
+		h=float(glutGet(GLUT_WINDOW_HEIGHT))
+		if h>w:
+			h=(h/w)*z
+			w=z
+		else:
+			w=(w/h)*z
+			h=z
+		w/=2.0
+		h/=2.0
+		z/=2.0
+
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
-		z=self.zoom
-		glOrtho(-z,z,-z,z,-z,z)
+		glOrtho(-w,w,-h,h,-z,z)
 
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
