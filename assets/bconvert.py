@@ -2,10 +2,11 @@ import cPickle
 
 import bpy
 objects=list(bpy.data.objects)
-verts3=[]
-verts4=[]
+store={}
 for ob in objects:
 	if ob.type=="Mesh":
+		verts3=[]
+		verts4=[]
 		mesh = ob.getData(mesh=1)
 		for face in mesh.faces:
 			l=verts4
@@ -13,9 +14,10 @@ for ob in objects:
 				l=verts3
 			for v in face.verts:
 				l+=list(v.co)
+		store[ob.name]=(verts3,verts4)
 
 filename="blob.pkl"
 f=file(filename,"wb")
-cPickle.dump(verts3,f)
-cPickle.dump(verts4,f)
+cPickle.dump(store,f)
 f.close()
+

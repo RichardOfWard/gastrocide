@@ -6,6 +6,21 @@ from OpenGL.GL.ARB.vertex_buffer_object import *
 
 from blib.game import get_game
 
+class MeshAssets:
+	def __init__(self,filename):
+		f=file("assets/"+filename+".pkl","rb")
+		self.store=store=cPickle.load(f)
+		for k in store.keys():
+			v3,v4=store[k]
+			i3=numpy.arange(len(v3)/3)
+			i4=numpy.arange(len(v4)/3)
+			v3=numpy.array(v3, 'f').reshape(-1,3)
+			v4=numpy.array(v4, 'f').reshape(-1,3)
+			store[k]=(v3,i3,v4,i4)
+	def get(self,name):
+		return self.store[name]
+MeshAssets=MeshAssets("blob")
+
 class LookDownIsoCam:
 	def __init__(self):
 		self.zoom=10
@@ -43,15 +58,8 @@ class Triangle(Visual):
 		self.time+=1
 
 class MeshModel(Visual):
-	def __init__(self,filename):
-		f=file("assets/"+filename+".pkl","rb")
-		self.v3=cPickle.load(f)
-		self.v4=cPickle.load(f)
-		self.v3=[float(v) for v in self.v3]
-		self.i3=numpy.arange(len(self.v3)/3)
-		self.i4=numpy.arange(len(self.v4)/4)
-		self.v3=numpy.array(self.v3, 'f').reshape(-1,3)
-		self.v4=numpy.array(self.v4, 'f').reshape(-1,3)
+	def __init__(self,name):
+		self.v3,self.i3,self.v4,self.i4=MeshAssets.get(name)
 	def render(self):
 		glEnableClientState(GL_VERTEX_ARRAY)
 		glVertexPointerf(self.v3)
