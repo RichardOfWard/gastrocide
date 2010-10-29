@@ -11,6 +11,7 @@ def get_game():
 		def tick(self):
 			self.mgr_render.render()
 
-	return Game()
+	GAME_OBJ=Game()
+	return get_game()
 
 

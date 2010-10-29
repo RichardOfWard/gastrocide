@@ -17,3 +17,5 @@ for ob in objects:
 filename="blob.pkl"
 f=file(filename,"wb")
 cPickle.dump(verts3,f)
+cPickle.dump(verts4,f)
+f.close()

@@ -21,4 +21,6 @@ def Initialize(game):
 		glut.glutPostRedisplay()
 	glut.glutDisplayFunc(DisplayFunc)
 	glut.glutIdleFunc(IdleFunc)
+
+def Run():
 	glut.glutMainLoop()

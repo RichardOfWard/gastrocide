@@ -2,3 +2,4 @@ relre:.*\.swp
 relre:.*\.pyc
 relre:assets/.*\.pkl
 glob:tags
+relre:.*\.blend[0-9]$
