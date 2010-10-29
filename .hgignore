@@ -1,3 +1,4 @@
 relre:.*\.swp
 relre:.*\.pyc
 relre:assets/.*\.pkl
+glob:tags
