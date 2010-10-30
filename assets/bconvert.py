@@ -3,6 +3,7 @@ import cPickle
 import bpy
 objects=list(bpy.data.objects)
 store={}
+faaa=None
 for ob in objects:
 	if ob.type=="Mesh":
 		verts3=[]
@@ -18,7 +19,11 @@ for ob in objects:
 				ln=norms3
 			for v in face.verts:
 				lv+=list(v.co)
-				ln+=list(v.no)
+				if face.smooth:
+					ln+=list(v.no)
+				else:
+					ln+=list(face.no)
+
 		store[ob.name]=(verts3,norms3,verts4,norms4)
 
 filename="blob.pkl"

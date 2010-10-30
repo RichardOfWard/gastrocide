@@ -1,14 +1,20 @@
 import cPickle
 import numpy
+
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
 
+from math import radians
+
+from gob.vector3 import Vector3
+from gob.matrix44 import Matrix44
+
 from blib.game import get_game
 from blib.colors import *
 
-class MeshAssets:
+class MeshAssets(object):
 	def __init__(self,filename):
 		f=file("assets/"+filename+".pkl","rb")
 		self.store=store=cPickle.load(f)
@@ -25,7 +31,7 @@ class MeshAssets:
 		return self.store[name]
 MeshAssets=MeshAssets("blob")
 
-class LookDownIsoCam:
+class LookDownIsoCam(object):
 	def __init__(self):
 		self.zoom=10.0
 	def setup_proj(self):
@@ -54,8 +60,8 @@ class LookDownIsoCam:
 				0.0,0.0,0.0, #center
 				0.0,0.0,1.0, #up
 				)
-class Cam:
-	def __init__(self,fov=60.0,ob=None,position=(0.0,-5.0,1.0),offset=(0.0,0.0,1.0)):
+class Cam(object):
+	def __init__(self,fov=40.0,ob=None,position=(0.0,-8.0,1.0),offset=(0.0,0.0,1.0)):
 		self.position=list(position)
 		self.offset=list(offset)
 		self.target=[0,0,0]
@@ -67,7 +73,7 @@ class Cam:
 		aspect=w/h
 		glMatrixMode(GL_PROJECTION)
 		glLoadIdentity()
-		gluPerspective(self.fov,aspect,0.01,50)
+		gluPerspective(self.fov,aspect,0.01,150)
 	def setup_model(self):
 		glMatrixMode(GL_MODELVIEW)
 		glLoadIdentity()
@@ -80,7 +86,7 @@ class Cam:
 		args=eye+center+up
 		gluLookAt(*args)
 	
-class Visual:
+class Visual(object):
 	def __init__(self):
 		self.transparent=False
 	def add_to_world(self):
@@ -98,6 +104,21 @@ class MeshModel(Visual):
 		self.position=[0.0,0.0,0.0]
 		self.zrot=0.0
 		self.xrot=0.0
+		bv3,bn3,bi3,bv4,bn4,bi4=glGenBuffers(6)
+		glBindBuffer(GL_ARRAY_BUFFER		,bv3);glBufferData(GL_ARRAY_BUFFER			,self.v3,GL_STATIC_DRAW)
+		glBindBuffer(GL_ARRAY_BUFFER		,bn3);glBufferData(GL_ARRAY_BUFFER			,self.n3,GL_STATIC_DRAW)
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,bi3);glBufferData(GL_ELEMENT_ARRAY_BUFFER	,self.i3,GL_STATIC_DRAW)
+		glBindBuffer(GL_ARRAY_BUFFER		,bv4);glBufferData(GL_ARRAY_BUFFER			,self.v4,GL_STATIC_DRAW)
+		glBindBuffer(GL_ARRAY_BUFFER		,bn4);glBufferData(GL_ARRAY_BUFFER			,self.n4,GL_STATIC_DRAW)
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,bi4);glBufferData(GL_ELEMENT_ARRAY_BUFFER	,self.i4,GL_STATIC_DRAW)
+		glBindBuffer(GL_ARRAY_BUFFER,0)
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0)
+		self.bv3=bv3
+		self.bn3=bn3
+		self.bi3=bi3
+		self.bv4=bv4
+		self.bn4=bn4
+		self.bi4=bi4
 	def trans(self):
 		glTranslate(*self.position)
 		glRotate(self.zrot,0.0,0.0,-1.0)
@@ -117,9 +138,16 @@ class MeshModel(Visual):
 		glNormalPointer(GL_FLOAT,0,self.n4)
 		glDrawElementsui(GL_QUADS, self.i4)
 
-class Tower(MeshModel):
+
+class TowerSection(MeshModel):
 	def __init__(self):
-		MeshModel.__init__(self,"tower")
+		MeshModel.__init__(self,"tower_section")
+		col=list(darkslategray)
+		self.col_amb=self.col_diff=col
+
+class TowerSpire(MeshModel):
+	def __init__(self):
+		MeshModel.__init__(self,"tower_spire")
 		col=list(darkslategray)
 		self.col_amb=self.col_diff=col
 
@@ -131,27 +159,106 @@ class RingLevel(MeshModel):
 		self.transparent=True
 		self.col_amb=self.col_diff=col
 
+class BlobBehaviourPlayerOnRing(object):
+	def __init__(self,blob):
+		self.blob=blob
+		self.__speed=1.0
+		self.was_moving_right=True
+		self.mrm=Matrix44.z_rotation(radians( self.__speed))
+		self.mlm=Matrix44.z_rotation(radians(-self.__speed))
+		self.swapm=Matrix44.z_rotation(radians(180))
+
+		self.vel=0.0
+
+		self.on_floor=False
+
+		self.bob=0.0
+		self.bob_dir=1.0
+		self.bob_mtx=numpy.array([
+				1.0,0.0,0.0,0.0,
+				0.0,1.0,0.0,0.0,
+				0.0,0.0,1.0,0.0,
+				0.0,0.0,0.0,1.0,
+				])
+	def move_left(self):
+		b=self.blob
+		b.position=list(self.mlm.transform(b.position))
+		b.zrot+=self.__speed
+		if self.was_moving_right:
+			b.zrot+=180.0
+		self.was_moving_right=False
+		if b.zrot>360.0:
+			b.zrot-=360.0
+		self.step_bob()
+	def move_right(self):
+		b=self.blob
+		b.position=list(self.mrm.transform(b.position))
+		b.zrot-=self.__speed
+		if not self.was_moving_right:
+			b.zrot-=180.0
+		self.was_moving_right=True
+		if b.zrot<0.0:
+			b.zrot+=360.0
+		self.step_bob()
+	def stop_movement(self):
+		self.bob=0
+		self.bob_dir=1.0
+	def step_bob(self):
+		self.bob+=self.bob_dir*0.07
+		if self.bob_dir>0:
+			if self.bob>1.0:
+				self.bob=1.0
+				self.bob_dir=-1.0
+		else:
+			if self.bob<0.0:
+				self.bob=0.0
+				self.bob_dir=1.0
+	def jump(self):
+		if self.on_floor:
+			self.vel=0.5
+	def tick(self):
+		self.bob_mtx[9]=self.bob*0.6
+		self.vel-=0.03
+		self.blob.position[2]+=self.vel
+		self.on_floor=False
+		rh=get_game().get_ring_height()+self.blob.size/2.0
+		if rh>self.blob.position[2]:
+			self.blob.position[2]=rh
+			self.vel=0
+			self.on_floor=True
+
 class Blob(MeshModel):
 	def __init__(self,size,color=red):
 		size=float(size)
 		MeshModel.__init__(self,"blob")
 		self.size=size
 		self.col_amb=self.col_diff=color
-	def render(self):
-		MeshModel.render(self)
 
 class PlayerBlob(Blob):
 	def __init__(self):
 		Blob.__init__(self,1,green)
 		self.cam=None
 		self.position[1]=-5.0
-		self.position[2]=0.5
-		self.zrot=90
+		self.position[2]=0.5+get_game().get_ring_height()+30.0
+		self.zrot=90.0
+		self.behaviour=BlobBehaviourPlayerOnRing(self)
 	def add_to_world(self):
 		Visual.add_to_world(self)
 		cam=self.cam=Cam(ob=self)
 		get_game().mgr_render.cam=cam
 		get_game().mgr_game.add_object(self)
+	def trans(self):
+		super(PlayerBlob,self).trans()
+		glMultMatrixf(self.behaviour.bob_mtx)
 	def tick(self):
-		pass
+		if get_game().keys["left"]:
+			self.behaviour.move_left()
+		elif get_game().keys["right"]:
+			self.behaviour.move_right()
+		else:
+			self.behaviour.stop_movement()
+		if get_game().keys[" "]:
+			self.behaviour.jump()
+
+		self.behaviour.tick()
 		

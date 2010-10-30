@@ -1,6 +1,7 @@
 from blib.object import LookDownIsoCam
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from OpenGL.GLUT import *
 
 class MgrRender:
 	def __init__(self):
@@ -25,10 +26,12 @@ class MgrRender:
 
 		cam.setup_proj()
 
+
 		glEnable(GL_LIGHT0)
-		glLight(GL_LIGHT0,GL_POSITION,[1.0,1.0,1.0,0])
+		glLight(GL_LIGHT0,GL_POSITION,[1.0,-1.0,1.0,0])
 		glLight(GL_LIGHT0,GL_DIFFUSE,[1,1,1,1])
 		glLight(GL_LIGHT0,GL_SPECULAR,[1,1,1,1])
+
 
 		cam.setup_model()
 		for obs in (self.vis_obs,self.trans_obs):

@@ -19,17 +19,43 @@ def Initialize(game):
 			import sys
 			traceback.print_exc()
 			sys.exit(1)
-	def IdleFunc(*args):
-		glutPostRedisplay()
 	glutDisplayFunc(DisplayFunc)
 
+	def IdleFunc(*args):
+		glutPostRedisplay()
 	glutIdleFunc(IdleFunc)
+
+	glutSetKeyRepeat(False)
+	glutkeys={}
+	glutkeys[GLUT_KEY_UP]="up"
+	glutkeys[GLUT_KEY_DOWN]="down"
+	glutkeys[GLUT_KEY_LEFT]="left"
+	glutkeys[GLUT_KEY_RIGHT]="right"
+	def SpecialFunc(key,x,y):
+		key=glutkeys.get(key,None)
+		if key is not None:
+			game.keys[key]=True
+	def SpecialUpFunc(key,x,y):
+		key=glutkeys.get(key,None)
+		if key is not None:
+			game.keys[key]=False
+	glutSpecialFunc(SpecialFunc)
+	glutSpecialUpFunc(SpecialUpFunc)
+	def KeyFunc(key,x,y):
+		if key in game.keys.keys():
+			game.keys[key]=True
+	def KeyUpFunc(key,x,y):
+		if key in game.keys.keys():
+			game.keys[key]=False
+	glutKeyboardFunc(KeyFunc)
+	glutKeyboardUpFunc(KeyUpFunc)
 
 	glEnable(GL_LIGHTING)
 	glShadeModel(GL_SMOOTH)
 	glEnable(GL_DEPTH_TEST)
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
 	glEnable(GL_BLEND)
+	glEnable(GL_NORMALIZE)
 
 def Run():
 	glutMainLoop()
