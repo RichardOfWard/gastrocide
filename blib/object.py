@@ -20,7 +20,12 @@ GRAVITY=0.03
 
 class MeshAssets(object):
 	def __init__(self,filename):
-		f=file("assets/"+filename+".pkl","rb")
+		try:
+			f=file("assets/"+filename+".pkl","rb")
+		except:
+			print "try running buildassets.sh first!"
+			import sys
+			sys.exit()
 		self.store=store=cPickle.load(f)
 		for k in store.keys():
 			v3,n3,v4,n4=store[k]
@@ -181,7 +186,7 @@ class RingLevel(MeshModel):
 		self.col_amb=self.col_diff=col
 		self.strength=strength
 	def render(self):
-		if self.strength-PLAYER.size<=self.strength/4.0:
+		if self.strength-PLAYER.size<0.25:
 			rand=random.randint(1,5)
 			col=list(slateblue)
 			col[3]=0.8
@@ -284,11 +289,25 @@ class BlobBehaviourPlayerOnRing(object):
 				if 2*dist<self.blob.size+enemy.size:
 					self.blob.position[2]-=self.vel
 					enemy.remove_from_world()
-					self.blob.size+=0.1
+					self.blob.size+=enemy.food
 					game=get_game()
 					if game.tower_height-1>=0 and self.blob.size>game.rings[game.tower_height-1].strength:
 						game.tower_height-=1
 						game.rings[game.tower_height].remove_from_world()
+						game.rings=game.rings[:-1]
+						remaining=len(game.rings)
+						if remaining==2:
+							Spawner(Enemy2,150).add_to_world()
+						elif remaining==1:
+							Spawner(Enemy3,75).add_to_world()
+						elif remaining==0:
+							inst=Enemy4()
+							rot=random.randint(1,360)
+							m=Matrix44.z_rotation(radians(rot))
+							inst.zrot-=rot
+							v=Vector3(inst.position)
+							inst.position=list(m.transform(v))
+							inst.add_to_world()
 				
 			
 
@@ -301,8 +320,9 @@ class Blob(MeshModel):
 		self.col_amb=self.col_diff=color
 		self.team=0
 		self.dead=False
+		self.food=0.1
 	def damage(self,source):
-		d=0.2 if self.team==1 else source.size/20.0
+		d=0.2 if self.team==1 else source.damage_mod*source.size/10.0
 		self.size-=d
 		for i in range(4):
 			Damage(self).add_to_world()
@@ -363,8 +383,8 @@ class PlayerBlob(Blob):
 			self.cam.follow=False
 
 class Enemy(Blob):
-	def __init__(self,size,color=red):
-		Blob.__init__(self,size,red)
+	def __init__(self,size,color):
+		Blob.__init__(self,size,color)
 		self.position[1]=-5.0
 		self.position[2]=0.5+get_game().get_ring_height()+60.0
 		self.zrot=90.0
@@ -372,6 +392,7 @@ class Enemy(Blob):
 		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=0.6,jump_velocity=0.3)
 		self.dead=False
 		self.direction_right=True
+		self.damage_mod=1.0
 	def trans(self):
 		super(Enemy,self).trans()
 		glMultMatrixf(self.behaviour.bob_mtx)
@@ -394,6 +415,26 @@ class Enemy(Blob):
 			if random.randint(1,40)==1:
 				self.behaviour.jump()
 		self.behaviour.tick()
+class Enemy1(Enemy):
+	def __init__(self):
+		Enemy.__init__(self,1.0,red)
+class Enemy2(Enemy):
+	def __init__(self):
+		Enemy.__init__(self,2.0,deeppink)
+		self.damage_mod=2.0
+		self.food=0.3
+class Enemy3(Enemy):
+	def __init__(self):
+		Enemy.__init__(self,1.5,orange)
+		self.behaviour.jump_velocity=0.55
+		self.damage_mod=1.5
+		self.food=0.2
+class Enemy4(Enemy):
+	def __init__(self):
+		Enemy.__init__(self,4.0,black)
+		self.behaviour.jump_velocity=0.55
+		self.damage_mod=3.0
+		self.food=1.0
 
 class Damage(MeshModel):
 	def __init__(self,source):
@@ -421,9 +462,8 @@ class Damage(MeshModel):
 		get_game().mgr_game.remove_object(self)
 
 class Spawner():
-	def __init__(self,klass,size,timeout=200):
+	def __init__(self,klass,timeout=200):
 		self.klass=klass
-		self.size=size
 		self.timeout=timeout
 		self.timer=20
 	def add_to_world(self):
@@ -435,7 +475,7 @@ class Spawner():
 				self.timer+=random.randint(1,150)
 			else:
 				self.timer=self.timeout
-				inst=self.klass(size=self.size)
+				inst=self.klass()
 				rot=random.randint(1,360)
 				m=Matrix44.z_rotation(radians(rot))
 				inst.zrot-=rot

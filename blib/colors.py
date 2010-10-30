@@ -12,5 +12,11 @@ slateblue=tuple(float(c)/256.0 for c in slateblue)
 darkslategray=(49,79,79,256)
 darkslategray=tuple(float(c)/256.0 for c in darkslategray)
 
+deeppink=(255,20,147,256)
+deeppink=tuple(float(c)/256.0 for c in deeppink)
+
+orange=(255,69,0,256)
+orange=tuple(float(c)/256.0 for c in orange)
+
 
 
