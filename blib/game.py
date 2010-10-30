@@ -37,9 +37,6 @@ def get_game():
 
 			p=PlayerBlob()
 			p.add_to_world()
-			#for i in range(100):
-			#	p=PlayerBlob()
-			#	p.add_to_world()
 		def get_ring_height(self):
 			if self.tower_height>0:
 				return self.rings[self.tower_height-1].position[2]
