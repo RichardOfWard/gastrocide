@@ -89,10 +89,15 @@ class Cam(object):
 		eye=self.position
 		center=self.target
 		if self.ob is not None:
-			center=[self.ob.position[i]+self.offset[i] for i in range(3)]
-			center[2]=get_game().get_ring_height()+2.5
-			eye=[center[i]*4.0 for i in range(3)]
-			eye[2]=center[2]+1.0
+			if self.follow:
+				center=[self.ob.position[i]+self.offset[i] for i in range(3)]
+				eye=[center[i]*4.0 for i in range(3)]
+				eye[2]=center[2]+1.0
+			else:
+				center=[self.ob.position[i]+self.offset[i] for i in range(3)]
+				center[2]=get_game().get_ring_height()+2.5
+				eye=[center[i]*4.0 for i in range(3)]
+				eye[2]=center[2]+1.0
 		up=[0.0,0.0,1.0]
 		args=eye+center+up
 		gluLookAt(*args)
@@ -350,13 +355,18 @@ class PlayerBlob(Blob):
 				self.behaviour.stop_movement()
 			if get_game().keys[" "]:
 				self.behaviour.jump()
+		old_level=get_game().tower_height
 		self.behaviour.tick()
+		if old_level!=get_game().tower_height:
+			self.cam.follow=True
+		elif self.behaviour.on_floor:
+			self.cam.follow=False
 
 class Enemy(Blob):
 	def __init__(self,size,color=red):
 		Blob.__init__(self,size,red)
 		self.position[1]=-5.0
-		self.position[2]=0.5+get_game().get_ring_height()+30.0
+		self.position[2]=0.5+get_game().get_ring_height()+60.0
 		self.zrot=90.0
 		self.team=1
 		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=0.6,jump_velocity=0.3)
@@ -422,7 +432,7 @@ class Spawner():
 		self.timer-=1
 		if self.timer<=0:
 			if len(get_game().mgr_team.obs[1])>=4:
-				self.timer+=random.randint(1,20)
+				self.timer+=random.randint(1,150)
 			else:
 				self.timer=self.timeout
 				inst=self.klass(size=self.size)
