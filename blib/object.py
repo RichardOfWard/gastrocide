@@ -169,16 +169,25 @@ class RingLevel(MeshModel):
 		self.strength=strength
 	def render(self):
 		if self.strength-PLAYER.size<=self.strength/4.0:
-			if random.randint(1,5)!=1:
-				MeshModel.render(self)
+			rand=random.randint(1,5)
+			col=list(slateblue)
+			col[3]=0.8
+			if rand==1 or rand==2:
+				col=list(slateblue)
+				col[3]=0.6
+			elif rand==3:
+				col=list(red)
+			self.col_amb=self.col_diff=col
+			MeshModel.render(self)
 		else:
 			MeshModel.render(self)
 
 
 class BlobBehaviourPlayerOnRing(object):
-	def __init__(self,blob):
+	def __init__(self,blob,speed=1.0,jump_velocity=0.5):
 		self.blob=blob
-		self.__speed=1.0
+		self.__speed=speed
+		self.jump_velocity=0.5
 		self.was_moving_right=True
 		self.mrm=Matrix44.z_rotation(radians( self.__speed))
 		self.mlm=Matrix44.z_rotation(radians(-self.__speed))
@@ -231,7 +240,7 @@ class BlobBehaviourPlayerOnRing(object):
 				self.bob_dir=1.0
 	def jump(self):
 		if self.on_floor:
-			self.vel=0.5
+			self.vel=self.jump_velocity
 	def tick(self):
 		self.bob_mtx[9]=self.bob*0.6
 		self.vel-=GRAVITY
@@ -282,7 +291,7 @@ class Blob(MeshModel):
 		self.size-=0.1
 		for i in range(4):
 			Damage(self).add_to_world()
-		if self.size<=0.6*self.original_size and self.team==1:
+		if self.size<=0.6*self.original_size and self.team==1 or self.size<0.3 and self.team==0:
 			self.dead=True
 			self.xrot=-90.0
 			self.col_amb=[c*0.5 for c in self.col_amb]
@@ -322,14 +331,15 @@ class PlayerBlob(Blob):
 		super(PlayerBlob,self).trans()
 		glMultMatrixf(self.behaviour.bob_mtx)
 	def tick(self):
-		if get_game().keys["left"]:
-			self.behaviour.move_left()
-		elif get_game().keys["right"]:
-			self.behaviour.move_right()
-		else:
-			self.behaviour.stop_movement()
-		if get_game().keys[" "]:
-			self.behaviour.jump()
+		if not self.dead:
+			if get_game().keys["left"]:
+				self.behaviour.move_left()
+			elif get_game().keys["right"]:
+				self.behaviour.move_right()
+			else:
+				self.behaviour.stop_movement()
+			if get_game().keys[" "]:
+				self.behaviour.jump()
 		self.behaviour.tick()
 
 class Enemy(Blob):
@@ -339,13 +349,12 @@ class Enemy(Blob):
 		self.position[2]=0.5+get_game().get_ring_height()+30.0
 		self.zrot=90.0
 		self.team=1
-		self.behaviour=BlobBehaviourPlayerOnRing(self)
+		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=0.7,jump_velocity=3.0)
 		self.dead=False
+		self.direction_right=True
 	def trans(self):
 		super(Enemy,self).trans()
 		glMultMatrixf(self.behaviour.bob_mtx)
-	def tick(self):
-		self.behaviour.tick()
 	def add_to_world(self):
 		Visual.add_to_world(self)
 		get_game().mgr_game.add_object(self)
@@ -354,6 +363,17 @@ class Enemy(Blob):
 		Visual.remove_from_world(self)
 		get_game().mgr_game.remove_object(self)
 		get_game().mgr_team.remove_object(self,self.team)
+	def tick(self):
+		if not self.dead:
+			if random.randint(1,100)==1:
+				self.direction_right=not self.direction_right
+			if self.direction_right:
+				self.behaviour.move_left()
+			else:
+				self.behaviour.move_right()
+			if random.randint(1,40)==1:
+				self.behaviour.jump()
+		self.behaviour.tick()
 
 class Damage(MeshModel):
 	def __init__(self,source):
