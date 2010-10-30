@@ -28,6 +28,8 @@ def Initialize(game):
 	glEnable(GL_LIGHTING)
 	glShadeModel(GL_SMOOTH)
 	glEnable(GL_DEPTH_TEST)
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA)
+	glEnable(GL_BLEND)
 
 def Run():
 	glutMainLoop()
