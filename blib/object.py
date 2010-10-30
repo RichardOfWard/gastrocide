@@ -90,7 +90,8 @@ class Cam(object):
 		if self.ob is not None:
 			center=[self.ob.position[i]+self.offset[i] for i in range(3)]
 			center[2]=get_game().get_ring_height()+2.5
-			eye=[center[i]+self.position[i] for i in range(3)]
+			eye=[center[i]*4.0 for i in range(3)]
+			eye[2]=center[2]+1.0
 		up=[0.0,0.0,1.0]
 		args=eye+center+up
 		gluLookAt(*args)
@@ -187,7 +188,7 @@ class BlobBehaviourPlayerOnRing(object):
 	def __init__(self,blob,speed=1.0,jump_velocity=0.5):
 		self.blob=blob
 		self.__speed=speed
-		self.jump_velocity=0.5
+		self.jump_velocity=jump_velocity
 		self.was_moving_right=True
 		self.mrm=Matrix44.z_rotation(radians( self.__speed))
 		self.mlm=Matrix44.z_rotation(radians(-self.__speed))
@@ -260,7 +261,7 @@ class BlobBehaviourPlayerOnRing(object):
 				dist=(me-them).get_length()
 				if 2*dist<self.blob.size+enemy.size:
 					self.blob.position[2]-=self.vel
-					enemy.damage()
+					enemy.damage(self.blob)
 					self.on_floor=True
 					self.jump()
 					self.on_floor=False
@@ -287,8 +288,9 @@ class Blob(MeshModel):
 		self.col_amb=self.col_diff=color
 		self.team=0
 		self.dead=False
-	def damage(self):
-		self.size-=0.1
+	def damage(self,source):
+		d=0.2 if self.team==1 else source.size/20.0
+		self.size-=d
 		for i in range(4):
 			Damage(self).add_to_world()
 		if self.size<=0.6*self.original_size and self.team==1 or self.size<0.3 and self.team==0:
@@ -315,7 +317,7 @@ class PlayerBlob(Blob):
 		self.position[2]=0.5+get_game().get_ring_height()+30.0
 		self.zrot=90.0
 		self.team=0
-		self.behaviour=BlobBehaviourPlayerOnRing(self)
+		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=2.4,jump_velocity=0.4)
 		self.dead=False
 	def add_to_world(self):
 		Visual.add_to_world(self)
@@ -349,7 +351,7 @@ class Enemy(Blob):
 		self.position[2]=0.5+get_game().get_ring_height()+30.0
 		self.zrot=90.0
 		self.team=1
-		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=0.7,jump_velocity=3.0)
+		self.behaviour=BlobBehaviourPlayerOnRing(self,speed=0.6,jump_velocity=0.3)
 		self.dead=False
 		self.direction_right=True
 	def trans(self):
@@ -416,7 +418,9 @@ class Spawner():
 			else:
 				self.timer=self.timeout
 				inst=self.klass(size=self.size)
-				m=Matrix44.z_rotation(radians(random.randint(1,360)))
+				rot=random.randint(1,360)
+				m=Matrix44.z_rotation(radians(rot))
+				inst.zrot-=rot
 				v=Vector3(inst.position)
 				inst.position=list(m.transform(v))
 				#player=list(get_game().mgr_team.obs[0])
