@@ -5,6 +5,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from OpenGL.GL.ARB.vertex_buffer_object import *
+from OpenGL.arrays import vbo
 
 from math import radians
 
@@ -20,12 +21,16 @@ class MeshAssets(object):
 		self.store=store=cPickle.load(f)
 		for k in store.keys():
 			v3,n3,v4,n4=store[k]
-			i3=numpy.arange(len(v3)/3)
-			i4=numpy.arange(len(v4)/3)
+			i3=len(v3)/3
+			i4=len(v4)/3
 			v3=numpy.array(v3, 'f').reshape(-1,3)
 			v4=numpy.array(v4, 'f').reshape(-1,3)
 			n3=numpy.array(n3, 'f').reshape(-1,3)
 			n4=numpy.array(n4, 'f').reshape(-1,3)
+			v3=vbo.VBO(v3)
+			v4=vbo.VBO(v4)
+			n3=vbo.VBO(n3)
+			n4=vbo.VBO(n4)
 			store[k]=(v3,n3,i3,v4,n4,i4)
 	def get(self,name):
 		return self.store[name]
@@ -104,21 +109,6 @@ class MeshModel(Visual):
 		self.position=[0.0,0.0,0.0]
 		self.zrot=0.0
 		self.xrot=0.0
-		bv3,bn3,bi3,bv4,bn4,bi4=glGenBuffers(6)
-		glBindBuffer(GL_ARRAY_BUFFER		,bv3);glBufferData(GL_ARRAY_BUFFER			,self.v3,GL_STATIC_DRAW)
-		glBindBuffer(GL_ARRAY_BUFFER		,bn3);glBufferData(GL_ARRAY_BUFFER			,self.n3,GL_STATIC_DRAW)
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,bi3);glBufferData(GL_ELEMENT_ARRAY_BUFFER	,self.i3,GL_STATIC_DRAW)
-		glBindBuffer(GL_ARRAY_BUFFER		,bv4);glBufferData(GL_ARRAY_BUFFER			,self.v4,GL_STATIC_DRAW)
-		glBindBuffer(GL_ARRAY_BUFFER		,bn4);glBufferData(GL_ARRAY_BUFFER			,self.n4,GL_STATIC_DRAW)
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,bi4);glBufferData(GL_ELEMENT_ARRAY_BUFFER	,self.i4,GL_STATIC_DRAW)
-		glBindBuffer(GL_ARRAY_BUFFER,0)
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,0)
-		self.bv3=bv3
-		self.bn3=bn3
-		self.bi3=bi3
-		self.bv4=bv4
-		self.bn4=bn4
-		self.bi4=bi4
 	def trans(self):
 		glTranslate(*self.position)
 		glRotate(self.zrot,0.0,0.0,-1.0)
@@ -131,12 +121,26 @@ class MeshModel(Visual):
 
 		glEnableClientState(GL_VERTEX_ARRAY)
 		glEnableClientState(GL_NORMAL_ARRAY)
+
+		self.v3.bind()
 		glVertexPointerf(self.v3)
-		glNormalPointer(GL_FLOAT,0,self.n3)
-		glDrawElementsui(GL_TRIANGLES, self.i3)
+		self.v3.unbind()
+		self.n3.bind()
+		glNormalPointerf(self.n3)
+		glDrawArrays(GL_TRIANGLES, 0, self.i3)
+		self.n3.unbind()
+
+
+		self.v4.bind()
 		glVertexPointerf(self.v4)
-		glNormalPointer(GL_FLOAT,0,self.n4)
-		glDrawElementsui(GL_QUADS, self.i4)
+		self.v4.unbind()
+		self.n4.bind()
+		glNormalPointerf(self.n3)
+		glDrawArrays(GL_QUADS, 0, self.i4)
+		self.n4.unbind()
+
+		glDisableClientState(GL_VERTEX_ARRAY)
+		glDisableClientState(GL_NORMAL_ARRAY)
 
 
 class TowerSection(MeshModel):
