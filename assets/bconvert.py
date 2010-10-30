@@ -6,15 +6,20 @@ store={}
 for ob in objects:
 	if ob.type=="Mesh":
 		verts3=[]
+		norms3=[]
 		verts4=[]
+		norms4=[]
 		mesh = ob.getData(mesh=1)
 		for face in mesh.faces:
-			l=verts4
+			lv=verts4
+			ln=norms4
 			if len(face.verts)==3:
-				l=verts3
+				lv=verts3
+				ln=norms3
 			for v in face.verts:
-				l+=list(v.co)
-		store[ob.name]=(verts3,verts4)
+				lv+=list(v.co)
+				ln+=list(v.no)
+		store[ob.name]=(verts3,norms3,verts4,norms4)
 
 filename="blob.pkl"
 f=file(filename,"wb")

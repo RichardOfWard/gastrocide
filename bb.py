@@ -2,11 +2,12 @@
 import blib.window
 import blib.game
 
-from blib.object import Triangle,MeshModel
+from blib.object import Blob
+from blib.colors import *
 
 
 if __name__=="__main__":
 	game=blib.game.get_game()
 	blib.window.Initialize(game)
-	MeshModel("blob").add_to_world()
+	Blob(1,green).add_to_world()
 	blib.window.Run()
