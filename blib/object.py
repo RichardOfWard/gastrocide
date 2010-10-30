@@ -328,6 +328,9 @@ class Blob(MeshModel):
 			Damage(self).add_to_world()
 		if self.size<=0.6*self.original_size and self.team==1 or self.size<0.3 and self.team==0:
 			self.dead=True
+			if self.team==0:
+				get_game().set_img("assets/fail.bmp")
+				get_game().restart=True
 			self.xrot=-90.0
 			self.col_amb=[c*0.5 for c in self.col_amb]
 			self.col_diff=[c*0.5 for c in self.col_diff]
@@ -435,6 +438,11 @@ class Enemy4(Enemy):
 		self.behaviour.jump_velocity=0.55
 		self.damage_mod=3.0
 		self.food=1.0
+	def tick(self):
+		if self.dead:
+			get_game().set_img("assets/win.bmp")
+			get_game().restart=True
+		Enemy.tick(self)
 
 class Damage(MeshModel):
 	def __init__(self,source):

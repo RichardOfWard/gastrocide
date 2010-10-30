@@ -34,6 +34,11 @@ class MgrRender:
 		glLight(GL_LIGHT0,GL_DIFFUSE,[1,1,1,1])
 		glLight(GL_LIGHT0,GL_SPECULAR,[1,1,1,1])
 
+		glEnable(GL_LIGHT1)
+		glLight(GL_LIGHT1,GL_POSITION,[-1.0,1.0,1.0,0])
+		glLight(GL_LIGHT1,GL_DIFFUSE,[0.3,0.3,0.3,1])
+		glLight(GL_LIGHT1,GL_SPECULAR,[0,0,0,1])
+
 
 		cam.setup_model()
 		for obs in (self.vis_obs,self.trans_obs):

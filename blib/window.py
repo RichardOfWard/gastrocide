@@ -3,11 +3,13 @@ from OpenGL.GL import *
 
 from blib.colors import *
 
+import sys
+
 def Initialize(game):
 	glutInit()
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
 	glutInitWindowSize(1024,768)
-	W=glutCreateWindow("Loading... Please WEIGHT!")
+	W=glutCreateWindow("GastroCide!")
 	def DisplayFunc(*args):
 		try:
 			glClearColor(*skyblue)
@@ -44,6 +46,8 @@ def Initialize(game):
 	def KeyFunc(key,x,y):
 		if key in game.keys.keys():
 			game.keys[key]=True
+		if key=='\x1b':
+			sys.exit()
 	def KeyUpFunc(key,x,y):
 		if key in game.keys.keys():
 			game.keys[key]=False
