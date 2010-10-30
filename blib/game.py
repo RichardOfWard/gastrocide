@@ -4,11 +4,12 @@ def get_game():
 	if GAME_OBJ is not None:
 		return GAME_OBJ
 
-	from blib.mgr import MgrRender,MgrGame
+	from blib.mgr import MgrRender,MgrGame,MgrTeam
 	class Game:
 		def __init__(self):
 			self.mgr_render=MgrRender()
 			self.mgr_game=MgrGame()
+			self.mgr_team=MgrTeam()
 			self.keys={}
 
 			self.keys["up"]=False
@@ -20,14 +21,16 @@ def get_game():
 			self.tower_height=5
 			self.tower_section_height=10.0
 		def load(self):
-			from blib.object import PlayerBlob, RingLevel, MeshModel, TowerSection, TowerSpire
+			from blib.object import PlayerBlob, RingLevel, MeshModel, TowerSection, TowerSpire, Enemy, Spawner
 
 			self.rings=[]
+			strength=self.tower_height+0.5
 			for i in range(self.tower_height):
 				t=TowerSection()
 				t.position[2]=self.tower_section_height/2+i*self.tower_section_height
 				t.add_to_world()
-				r=RingLevel()
+				r=RingLevel(strength)
+				strength-=1
 				r.position[2]=t.position[2]
 				self.rings.append(r)
 				r.add_to_world()
@@ -35,8 +38,8 @@ def get_game():
 			ts.position[2]=self.get_ring_height()
 			ts.add_to_world()
 
-			p=PlayerBlob()
-			p.add_to_world()
+			PlayerBlob().add_to_world()
+			Spawner(Enemy,size=1.0).add_to_world()
 		def get_ring_height(self):
 			if self.tower_height>0:
 				return self.rings[self.tower_height-1].position[2]

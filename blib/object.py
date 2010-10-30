@@ -1,5 +1,6 @@
 import cPickle
 import numpy
+import random
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -14,6 +15,8 @@ from gob.matrix44 import Matrix44
 
 from blib.game import get_game
 from blib.colors import *
+
+GRAVITY=0.03
 
 class MeshAssets(object):
 	def __init__(self,filename):
@@ -86,6 +89,7 @@ class Cam(object):
 		center=self.target
 		if self.ob is not None:
 			center=[self.ob.position[i]+self.offset[i] for i in range(3)]
+			center[2]=get_game().get_ring_height()+2.5
 			eye=[center[i]+self.position[i] for i in range(3)]
 		up=[0.0,0.0,1.0]
 		args=eye+center+up
@@ -156,12 +160,20 @@ class TowerSpire(MeshModel):
 		self.col_amb=self.col_diff=col
 
 class RingLevel(MeshModel):
-	def __init__(self):
+	def __init__(self,strength):
 		MeshModel.__init__(self,"ring")
 		col=list(slateblue)
 		col[3]=0.8
 		self.transparent=True
 		self.col_amb=self.col_diff=col
+		self.strength=strength
+	def render(self):
+		if self.strength-PLAYER.size<=self.strength/4.0:
+			if random.randint(1,5)!=1:
+				MeshModel.render(self)
+		else:
+			MeshModel.render(self)
+
 
 class BlobBehaviourPlayerOnRing(object):
 	def __init__(self,blob):
@@ -222,7 +234,7 @@ class BlobBehaviourPlayerOnRing(object):
 			self.vel=0.5
 	def tick(self):
 		self.bob_mtx[9]=self.bob*0.6
-		self.vel-=0.03
+		self.vel-=GRAVITY
 		self.blob.position[2]+=self.vel
 		self.on_floor=False
 		rh=get_game().get_ring_height()+self.blob.size/2.0
@@ -230,27 +242,82 @@ class BlobBehaviourPlayerOnRing(object):
 			self.blob.position[2]=rh
 			self.vel=0
 			self.on_floor=True
+		#apply damage
+		enemies=list(get_game().mgr_team.obs[(self.blob.team+1)%2])
+		me=Vector3(self.blob.position)
+		for enemy in enemies:
+			if self.vel<0.0 and not self.on_floor and not enemy.dead:
+				them=Vector3(enemy.position)
+				dist=(me-them).get_length()
+				if 2*dist<self.blob.size+enemy.size:
+					self.blob.position[2]-=self.vel
+					enemy.damage()
+					self.on_floor=True
+					self.jump()
+					self.on_floor=False
+					break
+			elif self.on_floor and enemy.dead:
+				them=Vector3(enemy.position)
+				dist=(me-them).get_length()
+				if 2*dist<self.blob.size+enemy.size:
+					self.blob.position[2]-=self.vel
+					enemy.remove_from_world()
+					self.blob.size+=0.1
+					game=get_game()
+					if self.blob.size>game.rings[game.tower_height-1].strength:
+						game.tower_height-=1
+				
+			
 
 class Blob(MeshModel):
 	def __init__(self,size,color=red):
 		size=float(size)
 		MeshModel.__init__(self,"blob")
 		self.size=size
+		self.original_size=self.size
 		self.col_amb=self.col_diff=color
+		self.team=0
+		self.dead=False
+	def damage(self):
+		self.size-=0.1
+		for i in range(4):
+			Damage(self).add_to_world()
+		if self.size<=0.6*self.original_size and self.team==1:
+			self.dead=True
+			self.xrot=-90.0
+			self.col_amb=[c*0.5 for c in self.col_amb]
+			self.col_diff=[c*0.5 for c in self.col_diff]
+			self.col_spec=[c*0.5 for c in self.col_spec]
+			self.col_amb [3]=1.0
+			self.col_diff[3]=1.0
+			self.col_spec[3]=1.0
+	def trans(self):
+		super(Blob,self).trans()
+		glScale(self.size,self.size,self.size)
 
+PLAYER=None
 class PlayerBlob(Blob):
 	def __init__(self):
+		global PLAYER
+		PLAYER=self
 		Blob.__init__(self,1,green)
 		self.cam=None
 		self.position[1]=-5.0
 		self.position[2]=0.5+get_game().get_ring_height()+30.0
 		self.zrot=90.0
+		self.team=0
 		self.behaviour=BlobBehaviourPlayerOnRing(self)
+		self.dead=False
 	def add_to_world(self):
 		Visual.add_to_world(self)
 		cam=self.cam=Cam(ob=self)
 		get_game().mgr_render.cam=cam
 		get_game().mgr_game.add_object(self)
+		get_game().mgr_team.add_object(self,self.team)
+	def remove_from_world(self):
+		Visual.remove_from_world(self)
+		get_game().mgr_game.remove_object(self)
+		get_game().mgr_team.remove_object(self,self.team)
 	def trans(self):
 		super(PlayerBlob,self).trans()
 		glMultMatrixf(self.behaviour.bob_mtx)
@@ -263,6 +330,80 @@ class PlayerBlob(Blob):
 			self.behaviour.stop_movement()
 		if get_game().keys[" "]:
 			self.behaviour.jump()
-
 		self.behaviour.tick()
-		
+
+class Enemy(Blob):
+	def __init__(self,size,color=red):
+		Blob.__init__(self,size,red)
+		self.position[1]=-5.0
+		self.position[2]=0.5+get_game().get_ring_height()+30.0
+		self.zrot=90.0
+		self.team=1
+		self.behaviour=BlobBehaviourPlayerOnRing(self)
+		self.dead=False
+	def trans(self):
+		super(Enemy,self).trans()
+		glMultMatrixf(self.behaviour.bob_mtx)
+	def tick(self):
+		self.behaviour.tick()
+	def add_to_world(self):
+		Visual.add_to_world(self)
+		get_game().mgr_game.add_object(self)
+		get_game().mgr_team.add_object(self,self.team)
+	def remove_from_world(self):
+		Visual.remove_from_world(self)
+		get_game().mgr_game.remove_object(self)
+		get_game().mgr_team.remove_object(self,self.team)
+
+class Damage(MeshModel):
+	def __init__(self,source):
+		MeshModel.__init__(self,"damage")
+		self.col_amb=source.col_amb
+		self.col_diff=source.col_diff
+		self.col_spec=source.col_spec
+		self.position=source.position[:]
+		self.vel=[
+				(random.randint(0,100)-50)/500.0,
+				(random.randint(0,100)-50)/500.0,
+				0.25
+		]
+	def tick(self):
+		self.vel[2]-=GRAVITY
+		for i in range(3):
+			self.position[i]+=self.vel[i]
+		if self.position[2]<-10.0:
+			self.remove_from_world()
+	def add_to_world(self):
+		Visual.add_to_world(self)
+		get_game().mgr_game.add_object(self)
+	def remove_from_world(self):
+		Visual.remove_from_world(self)
+		get_game().mgr_game.remove_object(self)
+
+class Spawner():
+	def __init__(self,klass,size,timeout=200):
+		self.klass=klass
+		self.size=size
+		self.timeout=timeout
+		self.timer=20
+	def add_to_world(self):
+		get_game().mgr_game.add_object(self)
+	def tick(self):
+		self.timer-=1
+		if self.timer<=0:
+			if len(get_game().mgr_team.obs[1])>=4:
+				self.timer+=random.randint(1,20)
+			else:
+				self.timer=self.timeout
+				inst=self.klass(size=self.size)
+				m=Matrix44.z_rotation(radians(random.randint(1,360)))
+				v=Vector3(inst.position)
+				inst.position=list(m.transform(v))
+				#player=list(get_game().mgr_team.obs[0])
+				#if player:
+				#	player=player[0]
+				#	inst.position=player.position[:]
+				#	inst.position[2]+=10.0
+				inst.add_to_world()
+
+
