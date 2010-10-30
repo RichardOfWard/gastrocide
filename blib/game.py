@@ -18,10 +18,10 @@ def get_game():
 			self.keys["right"]=False
 			self.keys[" "]=False
 
-			self.tower_height=5
+			self.tower_height=2
 			self.tower_section_height=10.0
 		def load(self):
-			from blib.object import PlayerBlob, RingLevel, MeshModel, TowerSection, TowerSpire, Enemy, Spawner
+			from blib.object import PlayerBlob, RingLevel, MeshModel, TowerSection, TowerSpire, Enemy, Spawner,RingOuter
 
 			self.rings=[]
 			strength=self.tower_height+0.5
@@ -30,10 +30,12 @@ def get_game():
 				t.position[2]=self.tower_section_height/2+i*self.tower_section_height
 				t.add_to_world()
 				r=RingLevel(strength)
+				ro=RingOuter()
 				strength-=1
-				r.position[2]=t.position[2]
+				r.position[2]=ro.position[2]=t.position[2]
 				self.rings.append(r)
 				r.add_to_world()
+				ro.add_to_world()
 			ts=TowerSpire()
 			ts.position[2]=self.get_ring_height()
 			ts.add_to_world()

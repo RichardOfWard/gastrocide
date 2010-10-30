@@ -75,6 +75,7 @@ class Cam(object):
 		self.target=[0,0,0]
 		self.fov=fov
 		self.ob=ob
+		self.follow=True
 	def setup_proj(self):
 		w=float(glutGet(GLUT_WINDOW_WIDTH))
 		h=float(glutGet(GLUT_WINDOW_HEIGHT))
@@ -158,6 +159,12 @@ class TowerSpire(MeshModel):
 	def __init__(self):
 		MeshModel.__init__(self,"tower_spire")
 		col=list(darkslategray)
+		self.col_amb=self.col_diff=col
+class RingOuter(MeshModel):
+	def __init__(self):
+		MeshModel.__init__(self,"outer_ring")
+		col=list(darkslategray)
+		col[2]=0.8
 		self.col_amb=self.col_diff=col
 
 class RingLevel(MeshModel):
@@ -274,8 +281,9 @@ class BlobBehaviourPlayerOnRing(object):
 					enemy.remove_from_world()
 					self.blob.size+=0.1
 					game=get_game()
-					if self.blob.size>game.rings[game.tower_height-1].strength:
+					if game.tower_height-1>=0 and self.blob.size>game.rings[game.tower_height-1].strength:
 						game.tower_height-=1
+						game.rings[game.tower_height].remove_from_world()
 				
 			
 
