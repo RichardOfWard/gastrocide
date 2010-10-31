@@ -197,6 +197,8 @@ class RingLevel(MeshModel):
 				col=list(red)
 			self.col_amb=self.col_diff=col
 			MeshModel.render(self)
+			col=list(slateblue)
+			col[3]=0.8
 		else:
 			MeshModel.render(self)
 
@@ -289,7 +291,7 @@ class BlobBehaviourPlayerOnRing(object):
 				if 2*dist<self.blob.size+enemy.size:
 					self.blob.position[2]-=self.vel
 					enemy.remove_from_world()
-					self.blob.size+=enemy.food
+					self.blob.size+=enemy.food*1.4
 					game=get_game()
 					if game.tower_height-1>=0 and self.blob.size>game.rings[game.tower_height-1].strength:
 						game.tower_height-=1
