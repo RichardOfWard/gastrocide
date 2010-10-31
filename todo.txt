@@ -1,3 +1,0 @@
-velocity mod on impact
-after boss stuff
-init/win/lose screens
