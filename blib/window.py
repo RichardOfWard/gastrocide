@@ -20,6 +20,8 @@ def Initialize(game):
 			game.tick()
 			glutSwapBuffers()
 			global last_tick
+			while time.time()-last_tick<1.0/60.0:
+				pass
 			last_tick=time.time()
 		except:
 			import traceback
@@ -29,8 +31,6 @@ def Initialize(game):
 	glutDisplayFunc(DisplayFunc)
 
 	def IdleFunc(*args):
-		while time.time()-last_tick<1.0/70.0:
-			pass
 		glutPostRedisplay()
 	glutIdleFunc(IdleFunc)
 

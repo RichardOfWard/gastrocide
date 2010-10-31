@@ -5,6 +5,7 @@ setup(windows=['bb.py'],
 		options={
 			"py2exe": {
 				"includes": ["ctypes", "logging"],
+				"excludes": ["OpenGL"],
 				}
 			}
 		)
