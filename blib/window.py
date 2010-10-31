@@ -1,9 +1,12 @@
 from OpenGL.GLUT import *
 from OpenGL.GL import *
+import time
 
 from blib.colors import *
 
 import sys
+
+last_tick=time.time()
 
 def Initialize(game):
 	glutInit()
@@ -16,6 +19,8 @@ def Initialize(game):
 			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 			game.tick()
 			glutSwapBuffers()
+			global last_tick
+			last_tick=time.time()
 		except:
 			import traceback
 			import sys
@@ -24,6 +29,8 @@ def Initialize(game):
 	glutDisplayFunc(DisplayFunc)
 
 	def IdleFunc(*args):
+		while time.time()-last_tick<1.0/70.0:
+			pass
 		glutPostRedisplay()
 	glutIdleFunc(IdleFunc)
 
