@@ -18,11 +18,11 @@ def Initialize(game):
 			glClearColor(*skyblue)
 			glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 			game.tick()
-			glutSwapBuffers()
 			global last_tick
-			while time.time()-last_tick<1.0/60.0:
+			while time.time()-last_tick<1.0/70.0:
 				pass
 			last_tick=time.time()
+			glutSwapBuffers()
 		except:
 			import traceback
 			import sys
