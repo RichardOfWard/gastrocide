@@ -1,6 +1,0 @@
-relre:.*\.swp
-relre:.*\.pyc
-glob:tags
-relre:.*\.blend[0-9]$
-relre:^build/
-relre:^dist/
